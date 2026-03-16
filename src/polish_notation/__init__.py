@@ -1,13 +1,17 @@
 from typing import Dict, Optional, Union
 
 import questionary
+from rich.align import Align
+from rich.columns import Columns
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from .core.convert import (
     Quadruples,
     Triples,
     ast_to_postfix_from_ast,
+    ast_to_prefix,
     ast_to_quadruples,
     ast_to_triples,
     convert_to_postfix,
@@ -30,7 +34,7 @@ def construct_table(title: str) -> Table:
     )
 
 
-def _draw_triples_table(t: Triples) -> None:
+def _build_triples_table(t: Triples) -> Table:
     """Muestra una tabla con la representación de triplos."""
     table = construct_table("Triplos")
     table.add_column("Ref", style="yellow", justify="center")
@@ -40,10 +44,10 @@ def _draw_triples_table(t: Triples) -> None:
 
     for i, (op, arg1, arg2) in enumerate(t, start=1):
         table.add_row(str(f"({i})"), op, arg1, arg2)
-    console.print(table, justify="center")
+    return table
 
 
-def _draw_quadruples_table(q: Quadruples) -> None:
+def _build_quadruples_table(q: Quadruples) -> Table:
     """Muestra una tabla con la representación de cuádruplos."""
     table = construct_table("Cuádruplos")
     table.add_column("Operador", style="red", justify="center")
@@ -53,16 +57,17 @@ def _draw_quadruples_table(q: Quadruples) -> None:
 
     for op, arg1, arg2, result in q:
         table.add_row(op, arg1, arg2, result)
-    console.print(table, justify="center")
-    pass
+    return table
 
 
 def _eval(p: str, toeval: str, v: PostfixValues = {}, target: Optional[str] = None) -> None:
     result = evaluate_postfix(toeval, v)
     # replace postfix values in the output without mutating the original string
     postfix = p if not target else toeval
+
     for var, val in v.items():
         postfix = postfix.replace(var, str(val))
+
     console.print(f"\n[bold yellow]Evaluando NPI:[/bold yellow] [bold white]{p}[/bold white]", justify="center")
     if target:
         console.print(f"[bold green]{target} = [{postfix}] = {result}[/bold green]\n", justify="center")
@@ -89,12 +94,27 @@ def _process_expression(expr: str, values: PostfixValues) -> None:
     ast = parse_expression(expr)
     isAssignment = isinstance(ast, Assignment)
 
+    prefix = ast_to_prefix(ast)
+    # remove parentheses from expr to get infix, keeping single spaces between tokens
+    infix = " ".join([c for c in expr.strip().replace("(", "").replace(")", "").replace(" ", "")])
     postfix = convert_to_postfix(expr)
     triples = ast_to_triples(parse_expression(expr))
     quadruples = ast_to_quadruples(parse_expression(expr))
 
-    _draw_triples_table(triples)
-    _draw_quadruples_table(quadruples)
+    triples_table = _build_triples_table(triples)
+    quadruples_table = _build_quadruples_table(quadruples)
+    tables = Align.center(Columns([triples_table, quadruples_table]))
+    console.print(
+        Panel.fit(
+            tables,
+            title="Representaciones Intermedias",
+            title_align="center",
+        ),
+        justify="center",
+    )
+    console.print(f"[bold cyan]Notación Prefija:[/bold cyan] [bold white]{prefix}[/bold white]", justify="center")
+    console.print(f"[bold magenta]Notación Infija:[/bold magenta] [bold white]{infix}[/bold white]", justify="center")
+    console.print(f"[bold cyan]Notación Postfija:[/bold cyan] [bold white]{postfix}[/bold white]", justify="center")
     _eval(
         postfix,
         ast_to_postfix_from_ast(ast.value) if isAssignment else postfix,
@@ -108,7 +128,7 @@ def _display_variables(variables: tuple[str, ...]) -> None:
     console.print(
         f"[bold yellow][+] Variables encontradas[/bold yellow]: [bold]{', '.join(variables)}[/bold]"
         if variables
-        else "[bold yellow][!] No se encontraron variables.[/bold yellow]",
+        else "[bold yellow][!] No se encontraron variables.[/bold yellow]\n",
     )
 
 
@@ -128,6 +148,7 @@ def _collect_variable_values(variables: tuple[str, ...]) -> PostfixValues | None
             except ValueError:
                 console.print(f"[red]Valor inválido para {var}. Por favor, ingresa un número.[/red]")
 
+    console.print()
     return values
 
 
