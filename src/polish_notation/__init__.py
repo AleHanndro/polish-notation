@@ -60,7 +60,9 @@ def _build_quadruples_table(q: Quadruples) -> Table:
     return table
 
 
-def _eval(p: str, toeval: str, v: PostfixValues = {}, target: str | None = None) -> None:
+def _eval(p: str, toeval: str, v: PostfixValues | None = None, target: str | None = None) -> None:
+    if v is None:
+        v = {}
     result = evaluate_postfix(toeval, v)
     # replace postfix values in the output without mutating the original string
     postfix = p if not target else toeval
