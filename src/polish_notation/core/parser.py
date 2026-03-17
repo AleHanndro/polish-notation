@@ -1,11 +1,12 @@
-from typing import List, Optional
+from typing import final
 
 from .lexer import Token, tokenize
 from .models import Assignment, ASTNode, BinaryOp, Identifier, Number
 
 
+@final
 class Parser:
-    def __init__(self, tokens: List[Token]):
+    def __init__(self, tokens: list[Token]):
         """
         Inicializa el analizador con una lista de tokens.
 
@@ -164,7 +165,7 @@ class Parser:
         else:
             raise ValueError(f"Token inesperado: {token}")
 
-    def current(self) -> Optional[Token]:
+    def current(self) -> Token | None:
         """
         Retorna el token actual en la posición del analizador.
 
