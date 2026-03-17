@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# C extensions
+*.so
+
+# Rust-generated files
+target/
