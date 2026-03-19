@@ -1,14 +1,14 @@
 import re
 from collections.abc import Mapping
 from functools import lru_cache
-from typing import List, Tuple
+from typing import cast
 
 from .lexer import tokenize
 from .models import Assignment, ASTNode, BinaryOp, Identifier, Number
 from .parser import parse_expression
 
-type Quadruples = List[Tuple[str, str, str, str]]
-type Triples = List[Tuple[str, str, str]]
+type Quadruples = list[tuple[str, str, str, str]]
+type Triples = list[tuple[str, str, str]]
 
 _PRECEDENCE = {"=": 0, "+": 1, "-": 1, "*": 2, "/": 2, "^": 3}
 _RIGHT_ASSOCIATIVE = {"^", "="}
@@ -22,7 +22,7 @@ def _is_operand(token: str) -> bool:
     return bool(_NUMBER_PATTERN.match(token)) or token.isidentifier()
 
 
-def infix_to_postfix(tokens: List[str]) -> str:
+def infix_to_postfix(tokens: list[str]) -> str:
     """
     Convierte tokens infijos a postfijos usando el algoritmo Shunting Yard.
     Nota: Los paréntesis se procesan pero no se incluyen en la salida.
@@ -30,8 +30,8 @@ def infix_to_postfix(tokens: List[str]) -> str:
     Raises:
         ValueError: Si hay paréntesis desbalanceados o tokens inválidos.
     """
-    output: List[str] = []
-    operators: List[str] = []
+    output: list[str] = []
+    operators: list[str] = []
 
     for token in tokens:
         if _is_operand(token):
@@ -56,7 +56,7 @@ def infix_to_postfix(tokens: List[str]) -> str:
                 output.append(operators.pop())
             if not operators or operators[-1] != "(":
                 raise ValueError("Paréntesis de cierre sin apertura correspondiente")
-            operators.pop()
+            _ = operators.pop()
         else:
             raise ValueError(f"Token inválido: {token}")
 
@@ -73,7 +73,7 @@ def ast_to_prefix(node: ASTNode) -> str:
     """
     Convierte un AST a notación prefija.
     """
-    parts: List[str] = []
+    parts: list[str] = []
 
     def _traverse(n: ASTNode) -> None:
         if isinstance(n, Number):
@@ -123,7 +123,7 @@ def ast_to_quadruples(node: ASTNode) -> Quadruples:
             return result
         raise TypeError(f"Unknown node type: {type(n)}")
 
-    traverse(node)
+    _ = traverse(node)
     return quads
 
 
@@ -152,7 +152,7 @@ def ast_to_triples(node: ASTNode) -> Triples:
             return f"({result_index})"  # Pointer to the result
         raise TypeError(f"Unknown node type: {type(n)}")
 
-    traverse(node)
+    _ = traverse(node)
     return triples
 
 
@@ -168,7 +168,7 @@ def convert_to_prefix(expression: str) -> str:
 
 
 @lru_cache(maxsize=128)
-def extract_variables(expression: str) -> Tuple[str, ...]:
+def extract_variables(expression: str) -> tuple[str, ...]:
     """
     Extrae todas las variables únicas de una expresión infija.
 
@@ -235,7 +235,7 @@ def evaluate_postfix(postfix: str, variables: Mapping[str, float | int]) -> floa
         7.0
     """
     OPERATORS = {"+", "-", "*", "/", "^"}
-    stack: List[float] = []
+    stack: list[float] = []
     tokens = postfix.split()
 
     for token in tokens:
@@ -255,7 +255,7 @@ def evaluate_postfix(postfix: str, variables: Mapping[str, float | int]) -> floa
                     raise ValueError("División por cero")
                 stack.append(a / b)
             elif token == "^":
-                stack.append(a**b)
+                stack.append(cast(float, a**b))
         elif token in variables:
             stack.append(float(variables[token]))
         else:
@@ -315,7 +315,7 @@ def evaluate_expression(expression: str, variable_values: Mapping[str, float | i
 
 def ast_to_postfix_from_ast(node: ASTNode) -> str:
     """Convierte un AST directamente a postfix (sin pasar por tokens)."""
-    parts: List[str] = []
+    parts: list[str] = []
 
     def _traverse(n: ASTNode) -> None:
         if isinstance(n, Number):

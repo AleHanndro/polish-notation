@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import final, override
 
 # Definición de patrones de tokens basada en la gramática de expresiones matemáticas
 # Se utiliza orden específico para evitar conflictos entre patrones similares
@@ -17,17 +17,21 @@ _TOKEN_SPEC = [
 _TOKEN_REGEX = re.compile("|".join(f"(?P<{name}>{pattern})" for name, pattern in _TOKEN_SPEC))
 
 
+@final
 class Token:
     def __init__(self, type_: str, value: str) -> None:
         self.type = type_
         self.value = value
 
+    @override
     def __repr__(self) -> str:
         return f"Token({self.type}, {self.value})"
 
+    @override
     def __hash__(self) -> int:
         return hash((self.type, self.value))
 
+    @override
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Token):
             return self.type == other.type and self.value == other.value
@@ -35,7 +39,7 @@ class Token:
         return False
 
 
-def tokenize(expression: str) -> List[Token]:
+def tokenize(expression: str) -> list[Token]:
     """
     Convierte una expresión matemática infija en una lista de tokens léxicos.
 
@@ -63,7 +67,7 @@ def tokenize(expression: str) -> List[Token]:
     if not expression.strip():
         raise ValueError("La expresión no puede estar vacía")
 
-    tokens: List[Token] = []
+    tokens: list[Token] = []
     last_end = 0
 
     for match in _TOKEN_REGEX.finditer(expression):

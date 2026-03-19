@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import cast
 
 import questionary
 from rich.align import Align
@@ -17,11 +17,11 @@ from .core.convert import (
     convert_to_postfix,
     evaluate_postfix,
     extract_variables,
-    parse_expression,
 )
 from .core.models import Assignment
+from .core.parser import parse_expression
 
-type PostfixValues = Dict[str, Union[int, float]]
+type PostfixValues = dict[str, int | float]
 console = Console()
 
 
@@ -60,7 +60,9 @@ def _build_quadruples_table(q: Quadruples) -> Table:
     return table
 
 
-def _eval(p: str, toeval: str, v: PostfixValues = {}, target: Optional[str] = None) -> None:
+def _eval(p: str, toeval: str, v: PostfixValues | None = None, target: str | None = None) -> None:
+    if v is None:
+        v = {}
     result = evaluate_postfix(toeval, v)
     # replace postfix values in the output without mutating the original string
     postfix = p if not target else toeval
@@ -139,8 +141,8 @@ def _collect_variable_values(variables: tuple[str, ...]) -> PostfixValues | None
 
     for var in list(variables):
         while True:
-            val_str = questionary.text(f"  - Valor para {var}:").ask()
-            if val_str is None:
+            val_str = cast(str | None, questionary.text(f"  - Valor para {var}:").ask())
+            if val_str is None or val_str == "":
                 return None
             try:
                 values[var] = float(val_str) if "." in val_str else int(val_str)
@@ -156,15 +158,18 @@ def main() -> None:
     """Punto de entrada para la aplicación de notación polaca."""
 
     while True:
-        expr = questionary.text(
-            "Ingresa una expresión infija ('/q' para salir):",
-            placeholder="A + B * (C - D)",
-            style=questionary.Style(
-                [("qmark", "fg:#89dceb bold"), ("answer", "fg:#cba6f7 bold")],
-            ),
-        ).ask()
+        expr = cast(
+            str | None,
+            questionary.text(
+                "Ingresa una expresión infija ('/q' para salir):",
+                placeholder="A + B * (C - D)",
+                style=questionary.Style(
+                    [("qmark", "fg:#89dceb bold"), ("answer", "fg:#cba6f7 bold")],
+                ),
+            ).ask(),
+        )
 
-        if expr is None or expr.strip().lower() == "/q":
+        if expr is None or expr == "" or expr.strip().lower() == "/q":
             break
         elif expr.strip().lower() == "/c":
             console.clear()
